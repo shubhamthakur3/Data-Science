@@ -1,144 +1,173 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
-  HiOutlineStar, HiOutlineLocationMarker, HiOutlineAcademicCap,
-  HiOutlineSearch, HiOutlineBriefcase, HiOutlineGlobe
+  HiOutlineStar, HiOutlineAcademicCap, HiOutlineLocationMarker,
+  HiOutlineGlobe, HiOutlineCheckCircle
 } from 'react-icons/hi';
 
-const demoInstitutes = [
+/* ─── Static institute data (will be replaced with API later) ─── */
+const institutes = [
   {
-    id: '1', name: 'DataTech Academy', slug: 'datatech-academy',
-    short_description: 'Premier Data Science training institute with 95% placement rate and industry-expert trainers.',
-    city: 'Bengaluru', state: 'Karnataka',
-    avg_rating: 4.9, total_reviews: 520, total_courses: 12, total_placements: 2800,
-    is_featured: true, established_year: 2018,
-    website: 'https://datatechacademy.com',
+    name: 'DataTech Academy', slug: 'datatech-academy', city: 'Bengaluru', state: 'Karnataka',
+    description: 'Premier institute for Data Science and AI with industry-grade curriculum and strong placement network.',
+    avg_rating: 4.9, total_reviews: 520, total_courses: 12, total_students: 3200,
+    placement_rate: 92, website: 'https://datatech.example.com', is_verified: true,
   },
   {
-    id: '2', name: 'AI Institute India', slug: 'ai-institute-india',
-    short_description: 'Advanced AI & Machine Learning research-focused training center with PhD-led curriculum.',
-    city: 'Mumbai', state: 'Maharashtra',
-    avg_rating: 4.8, total_reviews: 380, total_courses: 8, total_placements: 1500,
-    is_featured: true, established_year: 2019,
-    website: 'https://aiinstitute.in',
+    name: 'AI Institute India', slug: 'ai-institute-india', city: 'Mumbai', state: 'Maharashtra',
+    description: 'Specialising in advanced ML and Deep Learning with research-backed pedagogy.',
+    avg_rating: 4.8, total_reviews: 389, total_courses: 8, total_students: 2100,
+    placement_rate: 88, website: 'https://aiinstitute.example.com', is_verified: true,
   },
   {
-    id: '3', name: 'Analytics Hub', slug: 'analytics-hub',
-    short_description: 'Practical analytics training with real-world business projects co-designed with Fortune 500 companies.',
-    city: 'Hyderabad', state: 'Telangana',
-    avg_rating: 4.7, total_reviews: 650, total_courses: 15, total_placements: 3500,
-    is_featured: true, established_year: 2017,
-    website: 'https://analyticshub.in',
+    name: 'Analytics Hub', slug: 'analytics-hub', city: 'Hyderabad', state: 'Telangana',
+    description: 'End-to-end analytics training from Excel to advanced statistical modelling.',
+    avg_rating: 4.7, total_reviews: 445, total_courses: 10, total_students: 2800,
+    placement_rate: 85, website: 'https://analyticshub.example.com', is_verified: true,
   },
   {
-    id: '4', name: 'Code Institute', slug: 'code-institute',
-    short_description: 'Intensive coding bootcamp that transforms beginners into job-ready data professionals.',
-    city: 'Delhi', state: 'Delhi',
-    avg_rating: 4.6, total_reviews: 290, total_courses: 6, total_placements: 1200,
-    is_featured: false, established_year: 2020,
-    website: 'https://codeinstitute.co.in',
+    name: 'CloudML Academy', slug: 'cloudml-academy', city: 'Pune', state: 'Maharashtra',
+    description: 'Cloud-native machine learning training on AWS, GCP, and Azure platforms.',
+    avg_rating: 4.6, total_reviews: 278, total_courses: 6, total_students: 1500,
+    placement_rate: 80, website: 'https://cloudml.example.com', is_verified: false,
   },
   {
-    id: '5', name: 'Neural Academy', slug: 'neural-academy',
-    short_description: 'Deep Learning specialist with GPU-powered labs and research mentorship programs.',
-    city: 'Pune', state: 'Maharashtra',
-    avg_rating: 4.9, total_reviews: 180, total_courses: 5, total_placements: 800,
-    is_featured: true, established_year: 2021,
-    website: 'https://neuralacademy.com',
+    name: 'DeepVision Labs', slug: 'deepvision-labs', city: 'Chennai', state: 'Tamil Nadu',
+    description: 'Computer vision and deep learning specialist with industry research projects.',
+    avg_rating: 4.8, total_reviews: 198, total_courses: 5, total_students: 900,
+    placement_rate: 90, website: 'https://deepvision.example.com', is_verified: true,
   },
 ];
 
-export default function InstitutesPage() {
-  const [search, setSearch] = useState('');
-
-  const filtered = demoInstitutes.filter(
-    (inst) =>
-      !search ||
-      inst.name.toLowerCase().includes(search.toLowerCase()) ||
-      inst.city.toLowerCase().includes(search.toLowerCase())
-  );
-
+/* ─── Stars ─── */
+function Stars({ rating }) {
   return (
-    <div className="min-h-screen pt-20 pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">
-            Top <span className="gradient-text">Institutes</span>
+    <span className="inline-flex items-center gap-0.5">
+      {[...Array(5)].map((_, i) => (
+        <svg key={i} width="14" height="14" viewBox="0 0 24 24"
+          fill={i < Math.floor(rating) ? '#b4690e' : '#e0e0e0'}
+        >
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+      ))}
+    </span>
+  );
+}
+
+export default function InstitutesPage() {
+  return (
+    <div style={{ backgroundColor: 'var(--color-canvas)' }}>
+      {/* ─── Page Header ─── */}
+      <div
+        style={{
+          backgroundColor: 'var(--color-canvas-soft)',
+          borderBottom: '1px solid var(--color-hairline)',
+          padding: 'var(--space-3xl) 0',
+        }}
+      >
+        <div className="container-wide">
+          <h1 className="type-display-lg mb-2" style={{ color: 'var(--color-ink)' }}>
+            Institutes
           </h1>
-          <p className="text-[var(--text-secondary)]">
-            {filtered.length} verified Data Science training institutes across India.
+          <p className="type-body-serif-md" style={{ color: 'var(--color-body)' }}>
+            Verified training academies offering top Data Science and AI programs across India.
           </p>
-        </motion.div>
+        </div>
+      </div>
 
-        {/* Search */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="mb-8">
-          <div className="relative max-w-xl">
-            <HiOutlineSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] w-5 h-5" />
-            <input
-              type="text" value={search} onChange={(e) => setSearch(e.target.value)}
-              className="input !pl-12" placeholder="Search institutes by name or city..."
-            />
-          </div>
-        </motion.div>
+      {/* ─── Institute List ─── */}
+      <div className="container-wide" style={{ padding: 'var(--space-3xl) var(--space-xl)' }}>
+        <p className="type-body-sm mb-6" style={{ color: 'var(--color-body)' }}>
+          {institutes.length} institutes
+        </p>
 
-        {/* Institute Cards */}
-        <div className="grid md:grid-cols-2 gap-6">
-          {filtered.map((inst, i) => (
-            <motion.div key={inst.id}
-              initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
+        <div className="space-y-0">
+          {institutes.map((inst, i) => (
+            <motion.div
+              key={inst.slug}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: i * 0.06 }}
             >
-              <Link href={`/institutes/${inst.slug}`} className="card block p-6 group h-full">
-                <div className="flex items-start gap-4">
-                  {/* Logo Placeholder */}
-                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-cyan-500/20 flex items-center justify-center shrink-0">
-                    <HiOutlineAcademicCap className="w-8 h-8 text-indigo-400" />
+              <div
+                className="flex flex-col md:flex-row gap-6 p-6 border-b transition-colors"
+                style={{ borderColor: 'var(--color-hairline)' }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-canvas-soft)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+              >
+                {/* Logo placeholder */}
+                <div
+                  className="shrink-0 w-[80px] h-[80px] flex items-center justify-center border"
+                  style={{ borderColor: 'var(--color-hairline)' }}
+                >
+                  <span className="type-display-xs" style={{ color: 'var(--color-hairline)' }}>
+                    {inst.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
+                  </span>
+                </div>
+
+                {/* Details */}
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="type-body-md-strong" style={{ color: 'var(--color-ink)' }}>
+                      {inst.name}
+                    </h3>
+                    {inst.is_verified && (
+                      <HiOutlineCheckCircle className="w-4 h-4" style={{ color: 'var(--color-ink)' }} />
+                    )}
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <h3 className="text-lg font-bold text-white group-hover:text-indigo-400 transition-colors">
-                          {inst.name}
-                        </h3>
-                        <div className="flex items-center gap-2 text-sm text-[var(--text-muted)] mt-1">
-                          <HiOutlineLocationMarker className="w-4 h-4" />
-                          {inst.city}, {inst.state}
-                          {inst.established_year && <span>• Est. {inst.established_year}</span>}
-                        </div>
-                      </div>
-                      {inst.is_featured && (
-                        <span className="badge bg-amber-500/20 text-amber-300 whitespace-nowrap">⭐ Featured</span>
-                      )}
-                    </div>
+                  <div className="flex items-center gap-1 type-caption mb-2" style={{ color: 'var(--color-body)' }}>
+                    <HiOutlineLocationMarker className="w-3 h-3" />
+                    {inst.city}, {inst.state}
+                  </div>
 
-                    <p className="text-sm text-[var(--text-secondary)] mt-3 line-clamp-2">
-                      {inst.short_description}
-                    </p>
+                  <p className="type-body-sm mb-3" style={{ color: 'var(--color-body)' }}>
+                    {inst.description}
+                  </p>
 
-                    {/* Stats */}
-                    <div className="flex flex-wrap items-center gap-4 mt-4 pt-4 border-t border-[var(--border)]">
-                      <div className="flex items-center gap-1">
-                        <HiOutlineStar className="w-4 h-4 text-amber-400" />
-                        <span className="text-sm font-semibold text-white">{inst.avg_rating}</span>
-                        <span className="text-xs text-[var(--text-muted)]">({inst.total_reviews})</span>
-                      </div>
-                      <div className="flex items-center gap-1 text-sm text-[var(--text-muted)]">
-                        <HiOutlineAcademicCap className="w-4 h-4" />
-                        {inst.total_courses} courses
-                      </div>
-                      <div className="flex items-center gap-1 text-sm text-[var(--text-muted)]">
-                        <HiOutlineBriefcase className="w-4 h-4" />
-                        {inst.total_placements.toLocaleString()} placed
-                      </div>
-                    </div>
+                  {/* Rating */}
+                  <div className="flex items-center gap-1 mb-3">
+                    <span className="type-body-sm-strong" style={{ color: '#b4690e' }}>{inst.avg_rating}</span>
+                    <Stars rating={inst.avg_rating} />
+                    <span className="type-caption" style={{ color: 'var(--color-body)' }}>
+                      ({inst.total_reviews} reviews)
+                    </span>
+                  </div>
+
+                  {/* Stats row */}
+                  <div className="flex flex-wrap gap-4 type-caption" style={{ color: 'var(--color-body)' }}>
+                    <span>{inst.total_courses} courses</span>
+                    <span>{inst.total_students.toLocaleString()} students</span>
+                    <span>{inst.placement_rate}% placement rate</span>
                   </div>
                 </div>
-              </Link>
+
+                {/* CTA */}
+                <div className="shrink-0 flex flex-col justify-center gap-2">
+                  <Link
+                    href={`/courses?institute=${inst.slug}`}
+                    className="btn-primary text-center"
+                    style={{ padding: '10px 20px', fontSize: '14px' }}
+                  >
+                    View Courses
+                  </Link>
+                  {inst.website && (
+                    <a
+                      href={inst.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn-outline text-center flex items-center justify-center gap-1"
+                      style={{ padding: '10px 20px', fontSize: '14px' }}
+                    >
+                      <HiOutlineGlobe className="w-3.5 h-3.5" />
+                      Website
+                    </a>
+                  )}
+                </div>
+              </div>
             </motion.div>
           ))}
         </div>

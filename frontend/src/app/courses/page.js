@@ -5,12 +5,12 @@ import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
   HiOutlineSearch, HiOutlineFilter, HiOutlineStar,
-  HiOutlineAcademicCap, HiOutlineX, HiOutlineChevronDown
+  HiOutlineAcademicCap, HiOutlineX, HiOutlineChevronDown,
+  HiOutlineArrowRight, HiOutlineClock
 } from 'react-icons/hi';
-import { formatCurrency, getDifficultyColor, getModeColor } from '@/lib/utils';
-
 import { coursesAPI } from '@/lib/api';
 
+/* ─── Filter options ─── */
 const difficulties = [
   { value: '', label: 'All Levels' },
   { value: 'beginner', label: 'Beginner' },
@@ -25,304 +25,380 @@ const modes = [
   { value: 'hybrid', label: 'Hybrid' },
 ];
 
+const sortOptions = [
+  { value: 'popular', label: 'Most Popular' },
+  { value: '-avg_rating', label: 'Highest Rated' },
+  { value: 'fees', label: 'Price: Low to High' },
+  { value: '-fees', label: 'Price: High to Low' },
+  { value: '-created_at', label: 'Newest' },
+];
+
+/* ─── Stars ─── */
+function Stars({ rating }) {
+  return (
+    <span className="inline-flex items-center gap-0.5">
+      {[...Array(5)].map((_, i) => (
+        <svg key={i} width="14" height="14" viewBox="0 0 24 24"
+          fill={i < Math.floor(rating) ? '#b4690e' : '#e0e0e0'}
+        >
+          <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+        </svg>
+      ))}
+    </span>
+  );
+}
+
 export default function CoursesPage() {
-  const [filteredCourses, setFilteredCourses] = useState([]);
+  const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [difficulty, setDifficulty] = useState('');
   const [mode, setMode] = useState('');
-  const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState('popular');
+  const [showFilters, setShowFilters] = useState(false);
+  const [totalResults, setTotalResults] = useState(0);
 
   useEffect(() => {
-    const fetchCourses = async () => {
-      setLoading(true);
-      try {
-        const params = {};
-        if (search) params.search = search;
-        if (difficulty) params.difficulty = difficulty;
-        if (mode) params.mode = mode;
-
-        if (sortBy === 'price_low') params.ordering = 'fees';
-        else if (sortBy === 'price_high') params.ordering = '-fees';
-        else if (sortBy === 'rating') params.ordering = '-avg_rating';
-        else if (sortBy === 'duration') params.ordering = 'duration_weeks';
-        else params.ordering = '-total_enrollments'; // popular
-
-        const response = await coursesAPI.list(params);
-        setFilteredCourses(response.data.results || response.data || []);
-      } catch (error) {
-        console.error('Failed to fetch courses:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const handler = setTimeout(() => {
+    const timer = setTimeout(() => {
       fetchCourses();
     }, 300);
-
-    return () => clearTimeout(handler);
+    return () => clearTimeout(timer);
   }, [search, difficulty, mode, sortBy]);
 
-  return (
-    <div className="min-h-screen pt-20 pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">
-            Explore <span className="gradient-text">Courses</span>
-          </h1>
-          <p className="text-[var(--text-secondary)]">
-            {filteredCourses.length} courses found — discover your perfect program.
-          </p>
-        </motion.div>
+  const fetchCourses = async () => {
+    setLoading(true);
+    try {
+      const params = {};
+      if (search) params.search = search;
+      if (difficulty) params.difficulty = difficulty;
+      if (mode) params.mode = mode;
+      if (sortBy && sortBy !== 'popular') params.ordering = sortBy;
+      const res = await coursesAPI.list(params);
+      setCourses(res.data?.results || []);
+      setTotalResults(res.data?.count || 0);
+    } catch {
+      setCourses([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-        {/* Search & Filters */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="mb-8 space-y-4"
+  const activeFilterCount = [difficulty, mode].filter(Boolean).length;
+
+  return (
+    <div style={{ backgroundColor: 'var(--color-canvas)' }}>
+      {/* ─── Page Header ─── */}
+      <div
+        style={{
+          backgroundColor: 'var(--color-canvas-soft)',
+          borderBottom: '1px solid var(--color-hairline)',
+          padding: 'var(--space-3xl) 0',
+        }}
+      >
+        <div className="container-wide">
+          <h1 className="type-display-lg mb-2" style={{ color: 'var(--color-ink)' }}>
+            All Courses
+          </h1>
+          <p className="type-body-serif-md" style={{ color: 'var(--color-body)' }}>
+            Browse our complete catalog of Data Science, AI & Machine Learning courses.
+          </p>
+        </div>
+      </div>
+
+      <div className="container-wide" style={{ padding: 'var(--space-3xl) var(--space-xl)' }}>
+        {/* ─── Search + Sort Bar ─── */}
+        <div
+          className="flex flex-col md:flex-row items-stretch md:items-center gap-4 mb-8"
         >
-          {/* Search bar */}
-          <div className="flex gap-3">
-            <div className="flex-1 relative">
-              <HiOutlineSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] w-5 h-5" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="input !pl-12"
-                placeholder="Search courses, institutes, or technologies..."
-              />
-              {search && (
-                <button onClick={() => setSearch('')}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-white">
-                  <HiOutlineX className="w-4 h-4" />
-                </button>
-              )}
-            </div>
+          {/* Search */}
+          <div className="flex-1 flex items-center border" style={{
+            borderColor: 'var(--color-ink)',
+            borderRadius: 'var(--rounded-none)',
+            padding: '0 16px',
+            height: '48px',
+          }}>
+            <HiOutlineSearch className="w-5 h-5 shrink-0" style={{ color: 'var(--color-body)' }} />
+            <input
+              type="text"
+              placeholder="Search courses..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="flex-1 bg-transparent border-none outline-none px-3 type-body-md"
+              style={{ color: 'var(--color-ink)' }}
+              id="courses-search"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} style={{ color: 'var(--color-body)' }}>
+                <HiOutlineX className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          {/* Sort */}
+          <div className="flex items-center gap-3">
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="type-body-sm border bg-white px-3 py-2"
+              style={{
+                borderColor: 'var(--color-ink)',
+                borderRadius: 'var(--rounded-none)',
+                color: 'var(--color-ink)',
+                height: '48px',
+                minWidth: '180px',
+              }}
+              id="courses-sort"
+            >
+              {sortOptions.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+
+            {/* Filter toggle (mobile) */}
             <button
               onClick={() => setShowFilters(!showFilters)}
-              className={`btn-secondary flex items-center gap-2 ${showFilters ? 'border-indigo-500 text-indigo-400' : ''}`}
+              className="lg:hidden btn-outline flex items-center gap-2"
+              style={{ height: '48px', padding: '0 16px' }}
             >
-              <HiOutlineFilter className="w-5 h-5" />
-              <span className="hidden sm:inline">Filters</span>
+              <HiOutlineFilter className="w-4 h-4" />
+              Filters
+              {activeFilterCount > 0 && (
+                <span
+                  className="type-caption px-1.5 py-0.5"
+                  style={{
+                    backgroundColor: 'var(--color-ink)',
+                    color: 'var(--color-on-primary)',
+                  }}
+                >
+                  {activeFilterCount}
+                </span>
+              )}
             </button>
           </div>
+        </div>
 
-          {/* Filters */}
-          {showFilters && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="card p-6 grid grid-cols-1 sm:grid-cols-3 gap-4"
+        <div className="flex gap-8">
+          {/* ─── Sidebar Filters (Udemy-style) ─── */}
+          <aside
+            className={`${showFilters ? 'block' : 'hidden'} lg:block w-full lg:w-[240px] shrink-0`}
+          >
+            <div
+              className="border p-0 sticky top-[88px]"
+              style={{ borderColor: 'var(--color-hairline)' }}
             >
-              <div>
-                <label className="text-sm text-[var(--text-secondary)] mb-2 block">Difficulty</label>
-                <select
-                  value={difficulty}
-                  onChange={(e) => setDifficulty(e.target.value)}
-                  className="input !py-2.5"
-                >
-                  {difficulties.map(d => (
-                    <option key={d.value} value={d.value}>{d.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-sm text-[var(--text-secondary)] mb-2 block">Mode</label>
-                <select
-                  value={mode}
-                  onChange={(e) => setMode(e.target.value)}
-                  className="input !py-2.5"
-                >
-                  {modes.map(m => (
-                    <option key={m.value} value={m.value}>{m.label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-sm text-[var(--text-secondary)] mb-2 block">Sort By</label>
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="input !py-2.5"
-                >
-                  <option value="popular">Most Popular</option>
-                  <option value="rating">Highest Rated</option>
-                  <option value="price_low">Price: Low → High</option>
-                  <option value="price_high">Price: High → Low</option>
-                  <option value="duration">Shortest Duration</option>
-                </select>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Active filters */}
-          {(difficulty || mode) && (
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm text-[var(--text-muted)]">Active:</span>
-              {difficulty && (
-                <button
-                  onClick={() => setDifficulty('')}
-                  className="badge bg-indigo-500/20 text-indigo-300 cursor-pointer hover:bg-indigo-500/30 flex items-center gap-1"
-                >
-                  {difficulty} <HiOutlineX className="w-3 h-3" />
-                </button>
-              )}
-              {mode && (
-                <button
-                  onClick={() => setMode('')}
-                  className="badge bg-cyan-500/20 text-cyan-300 cursor-pointer hover:bg-cyan-500/30 flex items-center gap-1"
-                >
-                  {mode} <HiOutlineX className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-          )}
-        </motion.div>
-
-        {/* Course Grid */}
-        {loading ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="card animate-pulse overflow-hidden h-[380px] flex flex-col justify-between p-5 bg-white/5">
-                <div className="h-40 rounded-xl bg-white/5 mb-4" />
-                <div className="h-6 bg-white/10 rounded w-3/4 mb-2" />
-                <div className="h-4 bg-white/5 rounded w-1/2 mb-4" />
+              {/* Difficulty filter */}
+              <div className="p-4 border-b" style={{ borderColor: 'var(--color-hairline)' }}>
+                <p className="eyebrow mb-3" style={{ fontSize: '12px' }}>Level</p>
                 <div className="space-y-2">
-                  <div className="h-4 bg-white/5 rounded w-full" />
-                  <div className="h-4 bg-white/5 rounded w-5/6" />
+                  {difficulties.map((d) => (
+                    <label key={d.value} className="flex items-center gap-2 cursor-pointer type-body-sm" style={{ color: 'var(--color-ink)' }}>
+                      <input
+                        type="radio"
+                        name="difficulty"
+                        checked={difficulty === d.value}
+                        onChange={() => setDifficulty(d.value)}
+                        className="accent-black"
+                      />
+                      {d.label}
+                    </label>
+                  ))}
                 </div>
-                <div className="h-10 bg-white/10 rounded mt-4" />
               </div>
-            ))}
-          </div>
-        ) : (
-          <>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredCourses.map((course, i) => (
-                <motion.div
-                  key={course.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                >
-                  <Link href={`/courses/${course.slug}`} className="card block overflow-hidden group h-full">
-                    {/* Header */}
-                    <div className="h-40 bg-gradient-to-br from-indigo-600/20 to-cyan-600/10 relative flex items-center justify-center">
-                      <HiOutlineAcademicCap className="w-10 h-10 text-indigo-400/50" />
-                      <div className="absolute top-3 left-3 flex gap-2">
-                        <span className={`badge ${getDifficultyColor(course.difficulty)}`}>
-                          {course.difficulty}
-                        </span>
-                        <span className={`badge ${getModeColor(course.mode)}`}>
-                          {course.mode}
-                        </span>
-                      </div>
-                      {course.is_trending && (
-                        <span className="absolute top-3 right-3 badge bg-amber-500/20 text-amber-300">
-                          🔥 Trending
-                        </span>
-                      )}
-                      {course.discounted_fees && (
-                        <span className="absolute bottom-3 right-3 badge bg-green-500/20 text-green-300">
-                          {Math.round(((course.fees - course.discounted_fees) / course.fees) * 100)}% OFF
-                        </span>
-                      )}
-                    </div>
 
-                    {/* Body */}
-                    <div className="p-5">
-                      <h3 className="font-bold text-white mb-1 group-hover:text-indigo-400 transition-colors line-clamp-2">
-                        {course.title}
-                      </h3>
-                      <p className="text-xs text-[var(--text-muted)] mb-3">
-                        {course.institute_name} • {course.institute_city}
-                      </p>
-                      <p className="text-sm text-[var(--text-secondary)] mb-4 line-clamp-2">
-                        {course.short_description}
-                      </p>
+              {/* Mode filter */}
+              <div className="p-4 border-b" style={{ borderColor: 'var(--color-hairline)' }}>
+                <p className="eyebrow mb-3" style={{ fontSize: '12px' }}>Mode</p>
+                <div className="space-y-2">
+                  {modes.map((m) => (
+                    <label key={m.value} className="flex items-center gap-2 cursor-pointer type-body-sm" style={{ color: 'var(--color-ink)' }}>
+                      <input
+                        type="radio"
+                        name="mode"
+                        checked={mode === m.value}
+                        onChange={() => setMode(m.value)}
+                        className="accent-black"
+                      />
+                      {m.label}
+                    </label>
+                  ))}
+                </div>
+              </div>
 
-                      {/* Tools */}
-                      <div className="flex flex-wrap gap-1.5 mb-4">
-                        {course.tools_covered.slice(0, 4).map((tool) => (
-                          <span key={tool} className="text-xs px-2 py-0.5 rounded bg-white/5 text-[var(--text-muted)]">
-                            {tool}
-                          </span>
-                        ))}
-                        {course.tools_covered.length > 4 && (
-                          <span className="text-xs px-2 py-0.5 rounded bg-white/5 text-[var(--text-muted)]">
-                            +{course.tools_covered.length - 4}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Meta */}
-                      <div className="flex items-center justify-between text-sm mb-4">
-                        <div className="flex items-center gap-1">
-                          <HiOutlineStar className="w-4 h-4 text-amber-400" />
-                          <span className="font-semibold text-white">{course.avg_rating}</span>
-                          <span className="text-[var(--text-muted)]">({course.total_reviews})</span>
-                        </div>
-                        <span className="text-[var(--text-muted)]">{course.duration_weeks} weeks</span>
-                      </div>
-
-                      {/* Price */}
-                      <div className="flex items-center justify-between pt-4 border-t border-[var(--border)]">
-                        <div>
-                          {course.discounted_fees ? (
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg font-bold gradient-text">
-                                {formatCurrency(course.discounted_fees)}
-                              </span>
-                              <span className="text-sm text-[var(--text-muted)] line-through">
-                                {formatCurrency(course.fees)}
-                              </span>
-                            </div>
-                          ) : (
-                            <span className="text-lg font-bold gradient-text">
-                              {formatCurrency(course.fees)}
-                            </span>
-                          )}
-                        </div>
-                        {course.placement_support && (
-                          <span className="text-xs text-green-400 flex items-center gap-1">
-                            ✓ Placement
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
+              {/* Clear filters */}
+              {activeFilterCount > 0 && (
+                <div className="p-4">
+                  <button
+                    onClick={() => { setDifficulty(''); setMode(''); }}
+                    className="type-body-sm-strong w-full text-center py-2 border transition-colors"
+                    style={{
+                      borderColor: 'var(--color-ink)',
+                      color: 'var(--color-ink)',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = 'var(--color-ink)';
+                      e.currentTarget.style.color = 'var(--color-on-primary)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = 'var(--color-ink)';
+                    }}
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              )}
             </div>
+          </aside>
 
-            {/* Empty State */}
-            {filteredCourses.length === 0 && (
-              <div className="text-center py-20">
-                <HiOutlineSearch className="w-16 h-16 text-[var(--text-muted)] mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-white mb-2">No courses found</h3>
-                <p className="text-[var(--text-secondary)] mb-6">
-                  Try adjusting your filters or search query.
+          {/* ─── Course Grid ─── */}
+          <div className="flex-1">
+            {/* Results count */}
+            <p className="type-body-sm mb-4" style={{ color: 'var(--color-body)' }}>
+              {loading ? 'Loading...' : `${totalResults} result${totalResults !== 1 ? 's' : ''}`}
+            </p>
+
+            {loading ? (
+              <div className="space-y-0">
+                {[...Array(4)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="flex gap-4 p-4 border-b"
+                    style={{ borderColor: 'var(--color-hairline)' }}
+                  >
+                    <div className="skeleton shrink-0" style={{ width: '260px', height: '145px' }} />
+                    <div className="flex-1 space-y-3 py-2">
+                      <div className="skeleton" style={{ height: '18px', width: '70%' }} />
+                      <div className="skeleton" style={{ height: '14px', width: '100%' }} />
+                      <div className="skeleton" style={{ height: '14px', width: '40%' }} />
+                      <div className="skeleton" style={{ height: '16px', width: '20%' }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : courses.length === 0 ? (
+              <div className="text-center py-16 border" style={{ borderColor: 'var(--color-hairline)' }}>
+                <HiOutlineAcademicCap className="w-12 h-12 mx-auto mb-4" style={{ color: 'var(--color-hairline)' }} />
+                <h3 className="type-display-xs mb-2" style={{ color: 'var(--color-ink)' }}>
+                  No courses found
+                </h3>
+                <p className="type-body-sm mb-4" style={{ color: 'var(--color-body)' }}>
+                  Try adjusting your search or filters.
                 </p>
                 <button
                   onClick={() => { setSearch(''); setDifficulty(''); setMode(''); }}
-                  className="btn-secondary"
+                  className="btn-outline"
+                  style={{ fontSize: '14px', padding: '8px 20px' }}
                 >
-                  Clear All Filters
+                  Clear All
                 </button>
               </div>
+            ) : (
+              /* Udemy-style — horizontal list rows */
+              <div className="space-y-0">
+                {courses.map((course, i) => (
+                  <motion.div
+                    key={course.id || i}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: i * 0.04 }}
+                  >
+                    <Link
+                      href={`/courses/${course.slug}`}
+                      className="flex flex-col md:flex-row gap-4 p-4 border-b transition-colors group"
+                      style={{ borderColor: 'var(--color-hairline)' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'var(--color-canvas-soft)'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; }}
+                      id={`course-row-${i}`}
+                    >
+                      {/* Thumbnail */}
+                      <div
+                        className="shrink-0 w-full md:w-[260px] h-[145px] flex items-center justify-center border"
+                        style={{
+                          borderColor: 'var(--color-hairline)',
+                          backgroundColor: 'var(--color-canvas-soft)',
+                        }}
+                      >
+                        <HiOutlineAcademicCap className="w-10 h-10" style={{ color: 'var(--color-hairline)' }} />
+                      </div>
+
+                      {/* Details */}
+                      <div className="flex-1 py-1">
+                        <h3 className="type-body-md-strong mb-1" style={{ color: 'var(--color-ink)' }}>
+                          {course.title}
+                        </h3>
+                        <p className="type-body-sm mb-1" style={{ color: 'var(--color-body)' }}>
+                          {course.short_description}
+                        </p>
+                        <p className="type-caption mb-2" style={{ color: 'var(--color-body)' }}>
+                          {course.institute_name}{course.institute_city ? ` · ${course.institute_city}` : ''}
+                        </p>
+
+                        {/* Rating */}
+                        <div className="flex items-center gap-1 mb-2">
+                          <span className="type-body-sm-strong" style={{ color: '#b4690e' }}>
+                            {course.avg_rating || '4.5'}
+                          </span>
+                          <Stars rating={course.avg_rating || 4.5} />
+                          <span className="type-caption" style={{ color: 'var(--color-body)' }}>
+                            ({course.total_reviews || 0})
+                          </span>
+                        </div>
+
+                        {/* Meta tags */}
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="type-caption" style={{ color: 'var(--color-body)' }}>
+                            {course.duration_weeks} weeks
+                          </span>
+                          <span style={{ color: 'var(--color-hairline)' }}>·</span>
+                          <span className="type-caption" style={{ color: 'var(--color-body)' }}>
+                            {course.difficulty}
+                          </span>
+                          <span style={{ color: 'var(--color-hairline)' }}>·</span>
+                          <span className="type-caption" style={{ color: 'var(--color-body)' }}>
+                            {course.mode}
+                          </span>
+                          {course.placement_support && (
+                            <>
+                              <span style={{ color: 'var(--color-hairline)' }}>·</span>
+                              <span className="type-caption" style={{ color: 'var(--color-body)' }}>
+                                Placement Support
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Price column */}
+                      <div className="shrink-0 text-right md:py-1 md:w-[120px]">
+                        <p className="type-body-md-strong" style={{ color: 'var(--color-ink)' }}>
+                          ₹{(course.discounted_fees || course.fees || 0).toLocaleString('en-IN')}
+                        </p>
+                        {course.discounted_fees && course.fees && course.discounted_fees < course.fees && (
+                          <p className="type-caption line-through" style={{ color: 'var(--color-body)' }}>
+                            ₹{course.fees.toLocaleString('en-IN')}
+                          </p>
+                        )}
+                        {course.is_trending && (
+                          <span
+                            className="badge mt-2 inline-block"
+                            style={{
+                              backgroundColor: 'var(--color-canvas-soft)',
+                              color: 'var(--color-ink)',
+                              border: '1px solid var(--color-hairline)',
+                              fontSize: '11px',
+                            }}
+                          >
+                            Bestseller
+                          </span>
+                        )}
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
+              </div>
             )}
-          </>
-        )}
+          </div>
+        </div>
       </div>
     </div>
   );

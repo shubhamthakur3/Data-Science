@@ -1,13 +1,33 @@
-import { Inter } from "next/font/google";
+import { Playfair_Display, Lora, Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import { AuthProvider } from "@/contexts/AuthContext";
 
+/* ─── DESIGN.md Font Substitutes ───
+ *  WiredDisplay → Playfair Display (serif display)
+ *  BreveText    → Lora (serif body)
+ *  Apercu       → Inter (sans metadata/buttons)
+ */
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+  weight: ["400", "700"],
+});
+
+const lora = Lora({
+  subsets: ["latin"],
+  variable: "--font-serif",
+  display: "swap",
+  weight: ["400", "700"],
+});
+
 const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-inter",
+  variable: "--font-sans",
+  display: "swap",
 });
 
 export const metadata = {
@@ -34,7 +54,10 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html
+      lang="en"
+      className={`${playfair.variable} ${lora.variable} ${inter.variable}`}
+    >
       <body className="antialiased min-h-screen flex flex-col">
         <AuthProvider>
           <Navbar />
@@ -45,16 +68,13 @@ export default function RootLayout({ children }) {
             toastOptions={{
               duration: 4000,
               style: {
-                background: '#1e293b',
-                color: '#f8fafc',
-                border: '1px solid #334155',
-                borderRadius: '12px',
-              },
-              success: {
-                iconTheme: { primary: '#10b981', secondary: '#f8fafc' },
-              },
-              error: {
-                iconTheme: { primary: '#ef4444', secondary: '#f8fafc' },
+                background: '#000000',
+                color: '#ffffff',
+                border: '1px solid #000000',
+                borderRadius: '0px',
+                fontFamily: 'Inter, Helvetica Neue, sans-serif',
+                fontSize: '14px',
+                fontWeight: '700',
               },
             }}
           />

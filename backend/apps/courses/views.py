@@ -116,9 +116,9 @@ class CourseCompareView(APIView):
             )
 
         id_list = [i.strip() for i in ids.split(',') if i.strip()]
-        if len(id_list) < 2:
+        if len(id_list) < 1:
             return Response(
-                {'error': 'Please provide at least 2 course IDs to compare.'},
+                {'error': 'Please provide at least 1 course ID to compare.'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if len(id_list) > 4:
